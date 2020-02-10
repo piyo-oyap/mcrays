@@ -18,6 +18,7 @@
         }
 
         sock.onmessage = function(event){
+            console.log(event.data);
             var in_data = JSON.parse(event.data);
             alert(in_data.content);
         };
