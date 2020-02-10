@@ -53,13 +53,11 @@ wss.on('connection', function(ws){
 					});
 				}
 				wss.clients.forEach(function each(client){
-					if (client !== ws) {
 						client.send(msg);
-					}
 				});
 			}	
 		} catch (error) {
-			
+			console.log(error.message);
 		}
 		
 	})
