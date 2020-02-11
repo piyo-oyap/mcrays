@@ -7,16 +7,16 @@ var device_status = false;
 wss.on('connection', function(ws){
 
 	ws.on('message', function(msg){
-		try {
+		try { //to avoid crashing when theres error inparsing
 			var in_data = JSON.parse(msg);
 			console.log(msg);
 			if(in_data.type=='connection'){
 				if(in_data.content=='device'){
 					device = ws;
-					device.on('pong', heartbeat);
-					device.on('close', function(){
+					device.on('pong', heartbeat); //set the device  variable is alive to true if theres a reply from the device 
+					device.on('close', function(){ //if the device is disconnected properly
 						wss.clients.forEach(function each(client){
-							if (client !== ws) {
+							if (client !== device) {
 								client.send(JSON.stringify({
 									type: 'connection',
 									content: 'device_offline'
@@ -25,8 +25,8 @@ wss.on('connection', function(ws){
 						});
 						console.log('device offline');
 					})
-					wss.clients.forEach(function each(client){
-						if (client !== ws) {
+					wss.clients.forEach(function each(client){ //broadcast a message if the device is online
+						if (client !== device) {
 							client.send(JSON.stringify({
 								type: 'connection',
 								content: 'device_online'
@@ -36,29 +36,29 @@ wss.on('connection', function(ws){
 					console.log('device online');
 				}else{
 					var device_status;
-					if(device==null || device.readyState === server.CLOSED){
+					if(device==null || device.readyState === server.CLOSED || !device_status){
 						device_status = 'device_offline';
 					}else{
 						device_status = 'device_online';
 					}
-					ws.send(JSON.stringify({
+					ws.send(JSON.stringify({ //reply a status device after a client connects
 						type: 'connection',
 						content: device_status
 					}));
 					console.log('client connected');
 				}
 			}else if(in_data.type=='command'){
-				if(device==null || device.readyState === server.CLOSED){
+				if(device==null || device.readyState === server.CLOSED){ //checks if the device is online before broadcasting a command
 					msg = JSON.stringify({
 						type: 'connection',
 						content: 'device_offline'
 					});
 				}
 				wss.clients.forEach(function each(client){
-						client.send(msg);
+						if(client != ws) client.send(msg);
 				});
 
-				if(in_data.content == 'off'){
+				if(in_data.content == 'off'){ //command to turn off the device websocket connection
 					device.close();
 					console.log('shutting down the device');
 				}
@@ -70,9 +70,8 @@ wss.on('connection', function(ws){
 	})
 });
 
-setInterval(function(){
+setInterval(function(){ //checks if device is still online, this is useful when the device suddenly turned off
 	if (device != null) {
-		device.ping();
 		if(device.isAlive ==false && device_status != device.isAlive){
 			wss.clients.forEach(function each(client){
 				if (client !== device) {
@@ -85,10 +84,11 @@ setInterval(function(){
 			return device.terminate();
 		}
 		device.isAlive=false;
+		device.ping(); //ping the device to check its online
 		device_status = device.isAlive;
 	}
 },3000);
 
-function heartbeat(){
+function heartbeat(){ //set the flag to true if device has a reply after pinging
 	this.isAlive = true;
 }

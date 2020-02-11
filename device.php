@@ -7,7 +7,7 @@
 </head>
 <body>
     <script>
-        var sock = new WebSocket("ws://localhost:5001");
+        var sock = new WebSocket("ws://192.168.50.146:5001");
         sock.onopen = function(event){
             sock.send(JSON.stringify({
                 type: 'connection',
