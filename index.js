@@ -12,16 +12,16 @@ wss.on('connection', function(ws){
 			if(in_data.type=='connection'){
 				if(in_data.content=='device'){
 					device = ws;
-					ws.on('close', function(){
+					ws.on('close', function (){
 						wss.clients.forEach(function each(client){
-							if (client !== ws) {
+							if (client !== device) {
 								client.send(JSON.stringify({
 									type: 'connection',
 									content: 'device_offline'
 								}));
 							}
 						});
-						console.log('device offline');
+						console.log('device_offline');
 					})
 					wss.clients.forEach(function each(client){
 						if (client !== ws) {
