@@ -8,14 +8,14 @@
 </head>
 <body>
     <script>
-        var sock = new WebSocket("ws://10.0.0.33:5001");
-        sock.onopen = function(event){
-            sock.send(JSON.stringify({
-                type: 'connection',
-                content: 'client'
-            }));
-            alert('Websocket connected');
-        }
+        var sock = new WebSocket("ws://10.0.0.4:5001", 'client');
+        // sock.onopen = function(event){
+        //     sock.send(JSON.stringify({
+        //         type: 'connection',
+        //         content: 'client'
+        //     }));
+        //     alert('Websocket connected');
+        // }
 
         sock.onmessage = function(event){
             console.log(event.data);
