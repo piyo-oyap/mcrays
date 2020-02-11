@@ -1,93 +1,66 @@
+#include <ArduinoJson.h>
+#include <ArduinoWebsockets.h>
 #include <ESP8266WiFi.h>
-#include <WebSocketClient.h>
 
-const char* ssid     = "Ganda & Cute Boarding House";
-const char* password = "llaneta583";
-char path[] = "/";
-char host[] = "10.0.0.33";
-  
-WebSocketClient webSocketClient;
+#define LED D0
+const char* ssid = "Ganda & Cute Boarding House"; //Enter SSID
+const char* password = "llaneta583"; //Enter Password
+const char* websockets_server_host = "10.0.0.4"; //Enter server adress
+const int websockets_server_port = 5001; // Enter server port
 
-// Use WiFiClient class to create TCP connections
-WiFiClient client;
+using namespace websockets;
 
+WebsocketsClient client;
+
+DynamicJsonDocument doc(1024);
+JsonObject msg = doc.as<JsonObject>();
 void setup() {
-  Serial.begin(115200);
-  delay(10);
+    Serial.begin(115200);
+    Serial1.begin(9600);
 
-  // We start by connecting to a WiFi network
-
-  Serial.println();
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  
-  WiFi.begin(ssid, password);
-  
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  Serial.println("");
-  Serial.println("WiFi connected");  
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-
-  delay(5000);
-  
-
-  // Connect to the websocket server
-  if (client.connect("10.0.0.33", 80)) {
-    Serial.println("Connected");
-  } else {
-    Serial.println("Connection failed.");
-    while(1) {
-      // Hang on failure
+    // Connect to wifi
+    WiFi.begin(ssid, password);
+    delay(3000); //needed delay to make sure the 
+    // Wait some time to connect to wifi
+    for(int i = 0; i < 10 && WiFi.status() != WL_CONNECTED; i++) {
+        Serial.print(".");
+        delay(1000);
     }
-  }
 
-  // Handshake with the server
-  webSocketClient.path = path;
-  webSocketClient.host = host;
-  if (webSocketClient.handshake(client)) {
-    Serial.println("Handshake successful");
-  } else {
-    Serial.println("Handshake failed.");
-    while(1) {
-      // Hang on failure
-    }  
-  }
-
-  String data;
-
-  if (client.connected()) {
-    
-    webSocketClient.getData(data);
-    if (data.length() > 0) {
-      Serial.print("Received data: ");
-      Serial.println(data);
+    // Check if connected to wifi
+    if(WiFi.status() != WL_CONNECTED) {
+        Serial.println("No Wifi!");
+        return;
+    }
+//    Serial.println(WiFi.localIP);
+    Serial.println("Connected to Wifi, Connecting to server.");
+    delay(3000);
+    pinMode(LED, OUTPUT);
+    // try to connect to Websockets server
+    client.addHeader("sec-websocket-protocol","device");
+    bool connected = client.connect(websockets_server_host, websockets_server_port, "/");
+    if(connected) {
+        delay(1000);
+        Serial.println("Connecetd!");
+        digitalWrite(LED, LOW);
+    } else {
+        Serial.println("Not Connected!");
     }
     
-    // capture the value of analog 1, send it along
-    data = "[{type:'connection', content: 'device'}]"
-    
-    webSocketClient.sendData(data);
-    
-  } else {
-    Serial.println("Client disconnected.");
-    while (1) {
-      // Hang on disconnect.
-    }
-  }
-
+    // run callback when messages are received
+    client.onMessage([&](WebsocketsMessage message) {
+        deserializeJson(doc, message.data());
+        Serial.println(msg["type"].as<String>() + " : " + msg["content"].as<String>());
+        Serial1.println(msg["content"].as<String>());
+        
+        
+    });
 }
 
-
 void loop() {
-  
-  
-  // wait to fully let the client disconnect
-  delay(3000);
-  
+    // let the websockets client check for incoming messages
+    if(client.available()) {
+        client.poll();
+    }
+    delay(500);
 }
