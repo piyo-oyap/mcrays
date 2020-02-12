@@ -31,6 +31,9 @@ wss.on('connection', function(ws, request){
 				}));
 				console.log('%s | device online', request.socket.remoteAddress);
 				break;
+			default:
+				ws.terminate();
+				break;
 		}
 	} else {
 		console.log("warning: protocol field missing for %s", request.socket.remoteAddress);
