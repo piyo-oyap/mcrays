@@ -29,6 +29,7 @@ void onMessageCallback(WebsocketsMessage message) {
   Serial.println(obj[String("content")].as<String>());
   arduino_mega.println(obj[String("content")].as<String>());
   statusBlink(500);
+  lastPing = millis();
 }
 
 void onEventsCallback(WebsocketsEvent event, String data) {
