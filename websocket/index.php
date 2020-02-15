@@ -20,7 +20,7 @@
         sock.onmessage = function(event){
             console.log(event.data);
             var in_data = JSON.parse(event.data);
-            alert(in_data.content);
+            newLog(in_data.content);
         };
 
         function send(){
@@ -31,10 +31,17 @@
             console.log('sending');
         }
 
+        function newLog(text){
+            document.getElementById("log").value += "\n"+text;
+            document.getElementById("log").scrollTop = document.getElementById("log").scrollHeight 
+        }
+
     </script>
 
     <input type="number" id='index'>
     <input type="text" id='msg'>
     <button onclick='send()'>send</button>
+    <br>
+    <textarea name="log" id="log"></textarea>
 </body>
 </html>
