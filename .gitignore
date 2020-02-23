@@ -1,4 +1,5 @@
 link.txt
 websocket/node_modules/
 websocket/csv.php
+websocket/start_server
 .vscode/
