@@ -8,7 +8,7 @@
 </head>
 <body>
     <script>
-        var sock = new WebSocket("ws://10.0.0.4:5001", 'client');
+        var sock = new WebSocket("ws://10.0.0.33:5001", 'client');
         // sock.onopen = function(event){
         //     sock.send(JSON.stringify({
         //         type: 'connection',
