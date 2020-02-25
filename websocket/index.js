@@ -1,5 +1,6 @@
 'use strict';
 var server = require('ws').Server;
+const db = require('./db');
 var wss = new server({port: 5001});
 var device = null;
 console.log("Server now listening on %s:%s", wss.address().address, wss.address().port);
@@ -10,6 +11,7 @@ wss.on('connection', function(ws, request){
 		switch (request.headers["sec-websocket-protocol"]) {
 			case "client":
 				broadcastDeviceStatus(ws);
+				broadcastRealTimeValues(ws);
 				ws.on('close', function(){
 					console.log("%s | client disconnected", request.socket.remoteAddress);
 				});
@@ -42,8 +44,11 @@ wss.on('connection', function(ws, request){
 	ws.on('message', function(msg){
 		try { //to avoid crashing when theres error inparsing
 			var in_data = JSON.parse(msg);
-			console.log(msg);
+			console.log(in_data.content);
 			switch (in_data.type) {
+				case 'coloromiter':
+					console.log(in_data.content.tcsLux);
+					break;
 				case 'update':
 					
 					break;
@@ -57,8 +62,12 @@ wss.on('connection', function(ws, request){
 					broadcastToAll(msg);
 
 					break;
+
+				default:
+					console.log("Unknown message type");
 			}
 		} catch (error) {
+			console.log(msg);
 			console.log(error.message);
 		}
 		
@@ -90,6 +99,24 @@ function broadcastDeviceStatus(ws) {
 		type: 'connection',
 		content: device_status_response
 	}));
+}
+
+function broadcastRealTimeValues(ws) {
+	db.query("SELECT * FROM \"sensor\" ORDER BY timestamp DESC LIMIT 1", (err, res) => {
+		if (!err) {
+			let data = {}
+			data.type				=	"realtime"
+			data.water_temp 		=	res.rows[0]["water_temp_aqrm"]
+			data.water_level_aqrm	=	res.rows[0]["water_level_aqrm"]
+			data.water_level_tank	=	res.rows[0]["water_level_tank"]
+			data.air_humidity 		= 	res.rows[0]["air_humidity"]
+			data.air_temp 			=	res.rows[0]["air_temp"]
+			data.food_available		= 	res.rows[0]["food_available"]
+			ws.send(JSON.stringify({"type": "update", "content": JSON.stringify(data)}))
+			console.log(JSON.stringify({"type": "update", "content": JSON.stringify(data)}))
+		}
+	})
+
 }
 
 setInterval(function(){ //checks if device is still online, this is useful when the device suddenly turned off
