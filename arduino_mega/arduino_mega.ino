@@ -1,6 +1,5 @@
 #include <Wire.h>
-#include <Adafruit_Sensor.h>
-#include "Adafruit_TSL2591.h"
+#include "Adafruit_TCS34725.h"
 #include <NewPing.h>
 #include "DHT.h"
 #include <OneWire.h> 
@@ -18,21 +17,19 @@ DallasTemperature sensors(&oneWire);
 DHT dht(6, DHT22);
 NewPing waterSensor(water_trigPin, water_echoPin, MAX_DISTANCE);
 NewPing feedSensor(water_trigPin, water_echoPin, MAX_DISTANCE);
-Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591);
+Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);
 
 void setup() {
   Serial.begin(9600);
-  Serial1.begin(9600);
+  Serial3.begin(115200);
   sensors.begin(); 
   dht.begin();
-  if(!tsl.begin()){
-    Serial.println("TSL not found");
-    wiring_problem = true;
-    delay(5000);
-    return;
+  if (tcs.begin()) {
+    Serial.println("Found sensor");
+  } else {
+    Serial.println("No TCS34725 found ... check your connections");
+    while (1);
   }
-  tsl.setGain(TSL2591_GAIN_MED);
-  tsl.setTiming(TSL2591_INTEGRATIONTIME_400MS);
 
 }
 
@@ -42,12 +39,17 @@ void loop() {
     delay(2000);
     return;
   }
-  advancedRead();
   waterLevelControl();
-  delay(500);
+  delay(100);
+  if(Serial3.available()){
+    parseCommand(Serial3.readString());
+  }
+  debug();
+  Serial3.println(".");
 }
 
 void parseCommand(String cmd) {
+  Serial.println(cmd);
   char c = cmd.charAt(0);
   switch (c) {
     case 'W':
@@ -64,25 +66,35 @@ void parseCommand(String cmd) {
       break;
     case 'R':
       advancedRead();
+      break;
+    case 'r':
+    case 'g':
+    case 'b':
+      advancedRead();
+      break;
     default:
-      Serial.println("Invalid Command");
+      Serial.println(cmd);
       break;
   }
 }
 
 void advancedRead(void){
   String outStr = "";
-  uint32_t lum = tsl.getFullLuminosity();
-  uint16_t ir, full;
-  float lux;
-  ir = lum >> 16;
-  full = lum & 0xFFFF;
-  lux = tsl.calculateLux(full, ir);
-  outStr += "C{";
-  outStr += "\"ir\":\"" + String(ir) + "\","; 
-  outStr += "\"full\":\"" + String(full) + "\",";
-  outStr += "\"lux\":\"" + String(lux,6) + "\",";
-  Serial.println(outStr);  
+  uint16_t r, g, b, c, colorTemp, lux;
+  
+  tcs.getRawData(&r, &g, &b, &c);
+  delay(250); //discard the first reading for better result
+  tcs.getRawData(&r, &g, &b, &c);
+  colorTemp = tcs.calculateColorTemperature_dn40(r, g, b, c);
+  lux = tcs.calculateLux(r, g, b);
+  outStr += "\"r\":\"" + String(r) + "\","; 
+  outStr += "\"g\":\"" + String(g) + "\",";
+  outStr += "\"b\":\"" + String(b) + "\",";
+  outStr += "\"c\":\"" + String(c) + "\",";  
+  outStr += "\"colorTemp\":\"" + String(colorTemp) + "\",";
+  outStr += "\"tcsLux\":\"" + String(lux) + "\"";
+  Serial.println(outStr);
+  Serial3.println(outStr);  
 }
 
 void realTime(){
@@ -117,4 +129,10 @@ void readDHT(){
   }
   humidity = h;
   airTemp = t;
+}
+
+void debug(){
+  if(Serial.available()){
+    Serial3.println(Serial.readString());
+  }
 }
