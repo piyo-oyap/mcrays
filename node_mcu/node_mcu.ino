@@ -120,13 +120,16 @@ void statusBlink(int sleep){
 }
 
 void pushUpdate(){
-  String content = readStr();
+  String temp = readStr(), content;
+  temp.charAt(0)=='{' ? content = temp : content = readStr();
   client.send("{\"type\":\"push-update\", \"content\":" + content + "}");
 }
 
-String advancedRead(String color){
+void advancedRead(byte ledPin){
+  digitalWrite(led[ledPin], HIGH);
+  Serial.print("R;");
   if(Serial.available()) Serial.flush(); //clean the buffer
-  Serial.println("R");
+  delay(150);
   String outStr = "";
   tsl.getFullLuminosity();
   delay(250); //discard the first reading for better result
@@ -137,44 +140,33 @@ String advancedRead(String color){
   full = lum & 0xFFFF;
   lux = tsl.calculateLux(full, ir);
   outStr += "{";
-  outStr += "\"ir\":\"" + String(ir) + "\","; 
-  outStr += "\"full\":\"" + String(full) + "\",";
-  outStr += "\"tslLux\":\"" + String(lux,6) + "\",";
+  outStr += "\"ir\":" + String(ir) + ","; 
+  outStr += "\"full\":" + String(full) + ",";
+  outStr += "\"tslLux\":" + String(lux,6) + ",";
   while(!Serial.available());
-  outStr += readStr();
-  return outStr += "}";
-  
+  String temp = readStr();
+  temp.charAt(0)=='{' ? outStr += readStr() : outStr += temp;
+  digitalWrite(led[ledPin], LOW);
+  outStr += "}";
+  client.send("{\"type\":\"colorimeter\",\"content\":" + outStr + "}");
 //  Serial.println(outStr);
 //  client.send("{\"type\":\"coloromiter\",\"content\":" + outStr); //to fix colorimeter spelling
 }
 
-void colorimeter(){
-  String ledColor[] = {"red", "green", "blue"}, outStr = "";
-//  outStr += "{"
-  for(int i=0; i<3; i++){
-    outStr += "\"" + ledColor[i] + "\":";
-    outStr += advancedRead(ledColor[i]);
-    if(i<2) outStr += ",";
-  }
-  client.send("{\"type\":\"colorimeter\",\"content\":{" + outStr + "}");
-}
 
 void parseCmd(String cmd){
   switch(cmd.charAt(0)){
     case 'R':
-    colorimeter();
+    advancedRead(cmd.charAt(1)-'0');
       break;
     case 'r':
-      Serial.println("red");
-      cmd.charAt(1) == '1' ? digitalWrite(led[0], HIGH) : digitalWrite(led[0], LOW);
+      cmd.charAt(1) == '1' ? digitalWrite(led[2], HIGH) : digitalWrite(led[2], LOW);
       break;
     case 'g':
-      Serial.println("green");
       cmd.charAt(1) == '1' ? digitalWrite(led[1], HIGH) : digitalWrite(led[1], LOW);
       break;
     case 'b':
-      Serial.println("blue");
-      cmd.charAt(1) == '1' ? digitalWrite(led[2], HIGH) : digitalWrite(led[2], LOW);
+      cmd.charAt(1) == '1' ? digitalWrite(led[0], HIGH) : digitalWrite(led[0], LOW);
       break;
     case 'L':
       analogWrite(D6,cmd.substring(1,cmd.length()).toInt()*10);

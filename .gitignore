@@ -3,3 +3,7 @@ websocket/node_modules/
 websocket/csv.php
 websocket/start_server
 .vscode/
+
+*.hex
+*.tmp
+*.txt

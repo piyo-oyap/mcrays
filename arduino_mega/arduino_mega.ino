@@ -57,6 +57,8 @@ void loop() {
     lastUpdate = millis();
     realTime();
   }
+//  Serial3.print(";");
+//  delay(50);
 }
 
 void parseCommand(String str) {
@@ -102,6 +104,8 @@ void parseCommand(String str) {
       digitalWrite(feed, LOW);
   }else if(c=='R'){
     advancedRead();
+  }else if(c=='H'){
+    getPh();
   }
 //  switch (c) {
 //    case 'W':
@@ -171,14 +175,14 @@ void advancedRead(void){
   tcs.getRawData(&r, &g, &b, &c);
   colorTemp = tcs.calculateColorTemperature_dn40(r, g, b, c);
   lux = tcs.calculateLux(r, g, b);
-  outStr += "\"r\":\"" + String(r) + "\","; 
-  outStr += "\"g\":\"" + String(g) + "\",";
-  outStr += "\"b\":\"" + String(b) + "\",";
-  outStr += "\"c\":\"" + String(c) + "\",";  
-  outStr += "\"colorTemp\":\"" + String(colorTemp) + "\",";
-  outStr += "\"tcsLux\":\"" + String(lux) + "\"";
+  outStr += "\"r\":" + String(r) + ","; 
+  outStr += "\"g\":" + String(g) + ",";
+  outStr += "\"b\":" + String(b) + ",";
+  outStr += "\"c\":" + String(c) + ",";  
+  outStr += "\"colorTemp\":" + String(colorTemp) + ",";
+  outStr += "\"tcsLux\":" + String(lux);
   Serial.println(outStr);
-  Serial3.println(outStr);  
+  Serial3.print(outStr+";"); 
 }
 
 void realTime(){
@@ -228,7 +232,7 @@ void readDHT(){
 
 void debug(){
   if(Serial.available()){
-    Serial3.println(Serial.readString());
+    Serial3.print(Serial.readString());
   }
 }
 
@@ -247,4 +251,19 @@ String readStr(){
   Serial.println(out);
   #endif
   return out;
+}
+
+void getPh(){
+  int raw = 0;
+  for(byte i = 0; i<10; i++){
+    raw+=analogRead(A5);
+    delay(50);
+  }
+  String outStr = "{\"type\":\"pH\",\"content\":" + String(mapf(raw/10,0,1023,0,14),3) + "};";
+  Serial.println(outStr);
+  Serial3.print(outStr);
+}
+
+double mapf(double val, double in_min, double in_max, double out_min, double out_max) {
+    return (val - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
