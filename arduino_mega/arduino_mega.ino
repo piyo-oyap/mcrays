@@ -106,6 +106,8 @@ void parseCommand(String str) {
     advancedRead();
   }else if(c=='H'){
     getPh();
+  }else{
+    Serial.println("Nodemcu: " + cmd);
   }
 //  switch (c) {
 //    case 'W':
@@ -202,7 +204,7 @@ void realTime(){
   out+="\"Feeds\":"+String(feedDistance, 2);
   out+="}}";
   Serial3.print(out+";");
-  Serial.println(out);
+//  Serial.println(out);
 }
 
 void waterLevelControl(){
@@ -259,7 +261,7 @@ void getPh(){
     raw+=analogRead(A5);
     delay(50);
   }
-  String outStr = "{\"type\":\"pH\",\"content\":" + String(mapf(raw/10,0,1023,0,14),3) + "};";
+  String outStr = "{\"type\":\"non-realtime\",\"content\":{\"Alkalinity\":" + String((raw/10+258)/95.3668,3) + "}};";
   Serial.println(outStr);
   Serial3.print(outStr);
 }
