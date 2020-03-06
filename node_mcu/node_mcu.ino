@@ -1,4 +1,3 @@
-#include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 #include <ArduinoWebsockets.h>
 #include <ESP8266WiFi.h>
@@ -22,8 +21,6 @@ StaticJsonDocument<200> doc;
 using namespace websockets;
 
 void onMessageCallback(WebsocketsMessage message) {
-//  Serial.print("Got Message: ");
-//  Serial.println(message.data());
   String json = message.data();
   DeserializationError error = deserializeJson(doc, json);
   JsonObject obj = doc.as<JsonObject>();
@@ -59,7 +56,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(D5, OUTPUT);
   if(!tsl.begin()){
-//    Serial.println("TSL not found");
+//    Serial.println("TSL not found") ;
     delay(5000);
     return;
   }
@@ -117,18 +114,18 @@ void reconnectToServer(){
 }
 
 void statusBlink(int sleep){
-  digitalWrite(D5, HIGH);
+//  digitalWrite(D5, HIGH);
   delay(sleep);
-  digitalWrite(D5, LOW);
+//  digitalWrite(D5, LOW);
 }
 
 void pushUpdate(){
-  String content = Serial.readString();
-  client.send("\"tpye\":\"update\", \"content\":\"" + content + "\"");
+  String content = readStr();
+  client.send("{\"type\":\"push-update\", \"content\":" + content + "}");
 }
 
 String advancedRead(String color){
-  if(Serial.available()) Serial.readString(); //clean the buffer
+  if(Serial.available()) Serial.flush(); //clean the buffer
   Serial.println("R");
   String outStr = "";
   tsl.getFullLuminosity();
@@ -136,7 +133,7 @@ String advancedRead(String color){
   uint32_t lum = tsl.getFullLuminosity();
   uint16_t ir, full;
   float lux;
-  ir = lum >> 16;
+  ir = lum >> 16; 
   full = lum & 0xFFFF;
   lux = tsl.calculateLux(full, ir);
   outStr += "{";
@@ -144,7 +141,7 @@ String advancedRead(String color){
   outStr += "\"full\":\"" + String(full) + "\",";
   outStr += "\"tslLux\":\"" + String(lux,6) + "\",";
   while(!Serial.available());
-  outStr += Serial.readString();
+  outStr += readStr();
   return outStr += "}";
   
 //  Serial.println(outStr);
@@ -179,7 +176,23 @@ void parseCmd(String cmd){
       Serial.println("blue");
       cmd.charAt(1) == '1' ? digitalWrite(led[2], HIGH) : digitalWrite(led[2], LOW);
       break;
+    case 'L':
+      analogWrite(D6,cmd.substring(1,cmd.length()).toInt()*10);
     default:
+      Serial.print(cmd + ";");
       break;
   }
+}
+
+String readStr(){
+  String out = "";
+  char c = '\0';
+  while(c !=';'){
+    if(Serial.available()){
+      c = (char)Serial.read();
+      out+=c;
+    }
+  }
+  out = out.substring(0,out.length()-1);
+  return out;
 }
